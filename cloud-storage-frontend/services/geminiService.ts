@@ -10,10 +10,11 @@ if (!API_KEY) {
   console.warn("Gemini API key not found. Summarization feature will be disabled.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
+// Only initialize if API_KEY is present
+const ai = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
 export const summarizeText = async (textToSummarize: string): Promise<string> => {
-  if (!API_KEY) {
+  if (!ai) {
     // Simulate a delay and return a mock summary if API key is not available
     return new Promise(resolve => {
       setTimeout(() => {
