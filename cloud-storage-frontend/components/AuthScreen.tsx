@@ -2,24 +2,11 @@
 import React, { useState } from 'react';
 import { CloudDrizzle, ArrowRight, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
 import { User } from '../types';
+import { authService } from '../services/authService';
 
 interface AuthScreenProps {
   onLogin: (user: User) => void;
 }
-
-// Mock authentication function
-const mockAuth = async (isLogin: boolean, data: any): Promise<User> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        id: `user_${Date.now()}`,
-        name: isLogin ? 'Alex Doe' : data.name,
-        email: data.email,
-        avatarUrl: `https://picsum.photos/seed/${data.email}/200/200`,
-      });
-    }, 1500);
-  });
-};
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -32,14 +19,44 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-        // In a real app, validation would happen here
-        if (!email || !password || (!isLogin && !name)) {
-            return; 
-        }
-        const user = await mockAuth(isLogin, { email, password, name });
-        onLogin(user);
+      // Validation
+      if (!email || !password || (!isLogin && !name)) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      let token: string;
+
+      if (isLogin) {
+        // Login
+        token = await authService.login({ email, password });
+      } else {
+        // Register
+        token = await authService.register({
+          username: name,
+          email,
+          password,
+        });
+      }
+
+      // Store token in localStorage
+      localStorage.setItem('authToken', token);
+
+      // Build a simple user object for now (replace with /me endpoint later)
+      const user: User = {
+        id: email,
+        name: isLogin ? email.split('@')[0] : name,
+        email: email,
+        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+      };
+
+      onLogin(user);
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      const errorMsg = error.response?.data?.msg || 'Authentication failed';
+      alert(errorMsg);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
